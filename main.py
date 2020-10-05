@@ -37,9 +37,9 @@ class Object:
         self.y = y
         self.type = obj_type
         self.color = obj_color
-        self.dir = [0.0, 0.0]
+        self.vel = [0.0, 0.0]
         self.pos = [float(self.x), float(self.y)]
-        self.acceleration = [0.0, 0.0]
+        self.acc = [0.0, 0.0]
         if self.type == 'Ball':
             self.radius = radius
         elif self.type == 'Block':
@@ -188,9 +188,9 @@ class Main:
         if abs(obj.pos[0]) >= 50000 or abs(obj.pos[1]) >= 50000:
             return
 
-        obj.dir[0] += obj.acceleration[0]
-        obj.dir[1] += obj.acceleration[1] + self.gravity
-        obj.update_pos(obj.pos[0] + obj.dir[0], obj.pos[1] + obj.dir[1])
+        obj.vel[0] += obj.acc[0]
+        obj.vel[1] += obj.acc[1] + self.gravity
+        obj.update_pos(obj.pos[0] + obj.vel[0], obj.pos[1] + obj.vel[1])
 
 
 class Element:
