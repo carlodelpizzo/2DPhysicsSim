@@ -29,15 +29,55 @@ pink = [255, 192, 203]
 default_font = 'Helvetica'
 
 
+class Object:
+    def __init__(self, x: int, y: int, obj_type: str, obj_color=None, radius=10, width=20, height=20):
+        if obj_color is None:
+            obj_color = red
+        self.x = x
+        self.y = y
+        self.type = obj_type
+        self.color = obj_color
+        self.dir = [0.0, 0.0]
+        self.pos = [float(self.x), float(self.y)]
+        self.acceleration = [0.0, 0.0]
+        if self.type == 'Ball':
+            self.radius = radius
+        elif self.type == 'Block':
+            self.width = width
+            self.height = height
+
+    def draw(self):
+        if self.type == 'Ball':
+            pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius)
+        elif self.type == 'Block':
+            pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height))
+
+    def update_pos(self, new_x: float, new_y: float):
+        self.pos = (new_x, new_y)
+
+        if new_x % 1 >= 0.5:
+            self.x = int(self.pos[0] + 1)
+        else:
+            self.x = int(self.pos[0])
+
+        if new_y % 1 >= 0.5:
+            self.y = int(self.pos[1] + 1)
+        else:
+            self.y = int(self.pos[1])
+
+
 class Main:
     def __init__(self):
         top_menu_width = 20
         top_tool_width = 40
         scroll_bar_width = 15
         tool_bar_width = 80
+
+        self.gravity = 9.8 / frame_rate
+
         self.top_menu = TopMenu(0, 0, screen_width, top_menu_width, bg_color=red)
         self.top_toolbar = TopToolbar(0, self.top_menu.y + self.top_menu.height, screen_width, top_tool_width,
-                                      bg_color=blue)
+                                      bg_color=purple)
         top_tool_bottom = self.top_toolbar.y + self.top_toolbar.height
         self.toolbar = SideToolbar(0, self.top_toolbar.y + self.top_toolbar.height, tool_bar_width,
                                    screen_height - top_tool_bottom, bg_color=pink)
@@ -51,7 +91,7 @@ class Main:
         self.elements = [self.viewer, self.scroll_v, self.scroll_h, self.toolbar, self.top_toolbar, self.top_menu]
 
         self.held_object = None
-        self.objects = []
+        self.objects = [Object(0, 0, '')]
 
     def draw(self):
         pygame.draw.rect(screen, black, (self.viewer.x, self.viewer.y, self.viewer.width, self.viewer.height))
@@ -73,11 +113,9 @@ class Main:
 
         if self.held_object is not None:
             if self.held_object.type == 'Ball':
-                self.held_object.x = pos[0]
-                self.held_object.y = pos[1]
+                self.held_object.update_pos(pos[0], pos[1])
             elif self.held_object.type == 'Block':
-                self.held_object.x = int(pos[0] - self.held_object.width / 2)
-                self.held_object.y = int(pos[1] - self.held_object.height / 2)
+                self.held_object.update_pos(pos[0] - self.held_object.width / 2, pos[1] - self.held_object.height / 2)
 
         if press_type == 'DOWN' and pressed[0]:
             if self.held_object is not None and self.on_view_screen(pos):
@@ -106,17 +144,23 @@ class Main:
                 button.need_to_run = False
                 button.pressed_draw = False
 
-        # Undo actions
+        # Button actions undo
         if 'Ball' in undo_actions and self.held_object is not None:
             self.held_object = None
         elif 'Block' in undo_actions and self.held_object is not None:
             self.held_object = None
 
-        # Actions
+        # Button actions
         if 'Ball' in actions and self.held_object is None:
             self.held_object = Object(pos[0], pos[1], 'Ball')
         elif 'Block' in actions and self.held_object is None:
             self.held_object = Object(pos[0], pos[1], 'Block')
+
+        # Object updates
+        for obj in self.objects:
+            if obj.type == '':
+                continue
+            self.move_object(obj)
 
         self.draw()
         clock.tick(frame_rate)
@@ -138,6 +182,15 @@ class Main:
         self.scroll_v.height = screen_height - top_tool_bottom - self.scroll_h.height
         self.viewer.width = screen_width - self.toolbar.width - self.scroll_v.width
         self.viewer.height = screen_height - top_tool_bottom - self.scroll_h.height
+
+    def move_object(self, obj: Object):
+        # Boundary
+        if abs(obj.pos[0]) >= 50000 or abs(obj.pos[1]) >= 50000:
+            return
+
+        obj.dir[0] += obj.acceleration[0]
+        obj.dir[1] += obj.acceleration[1] + self.gravity
+        obj.update_pos(obj.pos[0] + obj.dir[0], obj.pos[1] + obj.dir[1])
 
 
 class Element:
@@ -319,27 +372,6 @@ class ScrollBarV(Element):
 class ViewScreen(Element):
     def __init__(self, x: int, y: int, width: int, height: int, bg_color=None):
         super().__init__(x, y, width, height, bg_color)
-
-
-class Object:
-    def __init__(self, x: int, y: int, obj_type: str, obj_color=None, radius=10, width=20, height=20):
-        if obj_color is None:
-            obj_color = red
-        self.x = x
-        self.y = y
-        self.type = obj_type
-        self.color = obj_color
-        if self.type == 'Ball':
-            self.radius = radius
-        elif self.type == 'Block':
-            self.width = width
-            self.height = height
-
-    def draw(self):
-        if self.type == 'Ball':
-            pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius)
-        elif self.type == 'Block':
-            pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height))
 
 
 main = Main()
